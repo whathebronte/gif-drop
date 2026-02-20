@@ -909,7 +909,6 @@ clearBtn.addEventListener('click', doReset);
 
 // ── Service Worker registration ──────────────────────────
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('#', { scope: '/' }).catch(() => {});
   // Inline SW via blob for single-file GitHub Pages deployment
   const swCode = `
     const CACHE = 'gifdrop-ffmpeg-v1';
@@ -960,16 +959,24 @@ async function loadFFmpeg() {
   // Track download progress via fetch interception
   let fromCache = false;
 
+  const cacheAvailable = typeof caches !== 'undefined';
+
   async function fetchWithProgress(url, mimeType) {
     // Try cache first (service worker or cache API)
-    const cached = await caches.open('gifdrop-ffmpeg-v1').then(c => c.match(url)).catch(() => null);
-    if (cached) {
-      fromCache = true;
-      const buf = await cached.arrayBuffer();
-      return new Blob([buf], { type: mimeType });
+    if (cacheAvailable) {
+      try {
+        const cache = await caches.open('gifdrop-ffmpeg-v1');
+        const cached = await cache.match(url);
+        if (cached) {
+          fromCache = true;
+          const buf = await cached.arrayBuffer();
+          return new Blob([buf], { type: mimeType });
+        }
+      } catch (_) { /* cache unavailable, proceed to network */ }
     }
     // Live fetch with progress
     const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
     const total = parseInt(res.headers.get('content-length') || '0');
     const reader = res.body.getReader();
     const chunks = [];
@@ -989,8 +996,12 @@ async function loadFFmpeg() {
     }
     const blob = new Blob(chunks, { type: mimeType });
     // Store in cache for next visit
-    const resClone = new Response(blob.slice());
-    await caches.open('gifdrop-ffmpeg-v1').then(c => c.put(url, resClone)).catch(() => {});
+    if (cacheAvailable) {
+      try {
+        const cache = await caches.open('gifdrop-ffmpeg-v1');
+        await cache.put(url, new Response(blob.slice()));
+      } catch (_) { /* caching failed, non-fatal */ }
+    }
     return blob;
   }
 
@@ -1036,9 +1047,26 @@ async function loadFFmpeg() {
     if (videoFile) enableConvert();
   } catch (err) {
     loaderIcon.textContent = '✕';
-    statusText.textContent = 'Failed to load. Try refreshing.';
     loaderFill.style.background = 'var(--orange)';
-    console.error(err);
+    console.error('FFmpeg load error:', err);
+
+    statusText.innerHTML = '';
+    statusText.append('Failed to load. ');
+    const retryLink = document.createElement('a');
+    retryLink.textContent = 'Retry';
+    retryLink.href = '#';
+    retryLink.style.cssText = 'color:var(--accent2);text-decoration:underline;cursor:pointer';
+    retryLink.addEventListener('click', e => {
+      e.preventDefault();
+      loaderFill.style.background = '';
+      loaderFill.style.width = '0%';
+      loaderPct.textContent = '0%';
+      loaderIcon.textContent = '⟳';
+      statusText.textContent = 'Retrying…';
+      statusEl.classList.remove('ready-done');
+      loadFFmpeg();
+    });
+    statusText.append(retryLink);
   }
 }
 
