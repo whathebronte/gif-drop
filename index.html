@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>GIFDrop — MP4 to GIF</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap');
+  @import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap');
+
+  :root {
+    --bg: #111218;
+    --surface: #1a1b26;
+    --surface2: #22243a;
+    --surface3: #0f1017;
+    --border: #2a2d47;
+    --border2: #333660;
+    --accent: #6c63ff;
+    --accent2: #9d8fff;
+    --accent-dim: #6c63ff1a;
+    --text: #e8e8f0;
+    --text-mid: #7b7d99;
+    --text-dim: #3e4060;
+    --orange: #f97316;
+    --green: #34d399;
+    --radius: 16px;
+    --card-radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 16px 80px;
+  }
+
+  /* ── HEADER ─────────────────────────────────────────── */
+  header {
+    width: 100%;
+    max-width: 720px;
+    margin-bottom: 36px;
+  }
+
+  .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 10px;
+  }
+  .eyebrow span { opacity: 0.5; margin-right: 6px; }
+
+  .logo {
+    font-family: 'Clash Display', 'Syne', sans-serif;
+    font-size: clamp(30px, 7vw, 44px);
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    line-height: 1;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .logo em {
+    font-style: normal;
+    color: var(--accent2);
+  }
+
+  .tagline {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--text-mid);
+    line-height: 1.7;
+    max-width: 420px;
+  }
+
+  /* ── MAIN CARD ──────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 720px;
+    overflow: hidden;
+  }
+
+  /* Section header row — matches numbered badge style */
+  .section-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent2);
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 3px 8px;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-family: 'Clash Display', 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  /* ── DROP ZONE ──────────────────────────────────────── */
+  #dropzone {
+    padding: clamp(40px, 9vw, 72px) 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    border: 1.5px dashed var(--border2);
+    border-radius: 10px;
+    margin: 20px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  #dropzone.dragover { border-color: var(--accent2); background: var(--accent-dim); }
+  #dropzone.hidden { display: none; }
+
+  .drop-icon {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+
+  .drop-label {
+    font-family: 'Clash Display', 'Syne', sans-serif;
+    font-size: clamp(16px, 4vw, 20px);
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text);
+    text-align: center;
+  }
+
+  .drop-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-mid);
+    text-align: center;
+    max-width: 320px;
+    line-height: 1.6;
+  }
+
+  .drop-btn {
+    margin-top: 4px;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 28px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .drop-btn:hover { opacity: 0.85; }
+
+  .mobile-hint {
+    display: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+  @media (hover: none) { .mobile-hint { display: block; } }
+
+  #file-input { display: none; }
+  #workspace  { display: none; }
+
+  /* ── FILE BAR ───────────────────────────────────────── */
+  .file-bar {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface3);
+  }
+
+  .file-pill {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 12px;
+    flex: 1; min-width: 0;
+  }
+
+  .file-icon { font-size: 14px; flex-shrink: 0; }
+  .file-name {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .file-meta {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    color: var(--text-mid); flex-shrink: 0;
+  }
+
+  .ghost-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-mid);
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    flex-shrink: 0; white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ghost-btn:hover { border-color: var(--text-mid); color: var(--text); }
+
+  /* ── VIDEO ──────────────────────────────────────────── */
+  .video-wrap { display: flex; justify-content: center; background: #000; }
+  video { max-width: 100%; max-height: 280px; display: block; object-fit: contain; }
+
+  /* ── LABEL ──────────────────────────────────────────── */
+  .field-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-mid);
+    margin-bottom: 10px;
+  }
+
+  /* ── TRIM ───────────────────────────────────────────── */
+  .trim-section { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+
+  .trim-track {
+    position: relative; height: 44px;
+    background: var(--surface3);
+    border-radius: 8px; border: 1px solid var(--border);
+    margin-bottom: 10px; touch-action: none; overflow: hidden;
+  }
+
+  .trim-selection {
+    position: absolute; top: 0; height: 100%;
+    background: var(--accent-dim);
+    border-left: 2px solid var(--accent2);
+    border-right: 2px solid var(--accent2);
+    pointer-events: none;
+  }
+
+  .trim-handle {
+    position: absolute; top: 0; width: 16px; height: 100%;
+    background: var(--accent);
+    cursor: ew-resize; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none; z-index: 2;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .trim-handle::after {
+    content: '|||';
+    color: rgba(255,255,255,0.55);
+    font-size: 8px; letter-spacing: -1px;
+  }
+  .trim-handle.start { margin-left: -8px; }
+  .trim-handle.end   { margin-right: -8px; }
+
+  .trim-playhead {
+    position: absolute; top: 0; width: 2px; height: 100%;
+    background: rgba(255,255,255,0.15); pointer-events: none;
+  }
+
+  .trim-times {
+    display: flex; justify-content: space-between;
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--text-mid); flex-wrap: wrap; gap: 4px;
+  }
+  .trim-times .hl { color: var(--accent2); }
+
+  /* ── SETTINGS GRID ──────────────────────────────────── */
+  .settings-section { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+
+  .settings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+  .setting-card {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+
+  .setting-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-mid); margin-bottom: 6px;
+  }
+
+  .setting-value {
+    font-family: 'Clash Display', 'Syne', sans-serif;
+    font-size: clamp(18px, 4vw, 22px);
+    font-weight: 700; color: var(--text);
+    line-height: 1; margin-bottom: 4px; letter-spacing: -0.5px;
+  }
+  .setting-value span {
+    font-size: 11px; font-weight: 400;
+    font-family: 'DM Mono', monospace; color: var(--text-mid);
+  }
+  .setting-note { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-dim); }
+
+  /* ── SIZE BAR ───────────────────────────────────────── */
+  .estimate-bar {
+    padding: 14px 22px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .estimate-label {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    color: var(--text-mid); text-transform: uppercase;
+    letter-spacing: 0.08em; flex-shrink: 0;
+  }
+  .size-meter { flex: 1; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+  .size-fill  { height: 100%; border-radius: 2px; transition: width 0.3s, background 0.3s; background: var(--green); }
+  .estimate-value {
+    font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500;
+    flex-shrink: 0; min-width: 72px; text-align: right;
+  }
+
+  /* ── WARNING ────────────────────────────────────────── */
+  .warning-box {
+    margin: 0 22px 14px; padding: 12px 14px;
+    border-radius: 8px; border: 1px solid var(--orange);
+    background: rgba(249,115,22,0.06);
+    display: flex; align-items: flex-start; gap: 10px;
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    color: var(--orange); line-height: 1.6;
+  }
+  .warning-box.hidden { display: none; }
+  .wi { flex-shrink: 0; }
+
+  /* ── PASTE AREA (reuse textarea style from reference) ── */
+  .paste-section { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+
+  /* ── BUTTONS ────────────────────────────────────────── */
+  .btn-row { padding: 16px 22px; display: flex; flex-direction: column; gap: 10px; }
+
+  .btn-clear {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Syne', sans-serif; font-weight: 600; font-size: 15px;
+    border-radius: 10px; padding: 14px;
+    cursor: pointer; transition: border-color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    display: none;
+  }
+  .btn-clear.visible { display: block; }
+  .btn-clear:hover { border-color: var(--border2); }
+
+  .btn-convert {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px;
+    border: none; border-radius: 10px; padding: 15px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-convert:hover:not(:disabled) { opacity: 0.85; }
+  .btn-convert:disabled {
+    background: var(--surface2); color: var(--text-dim);
+    cursor: not-allowed;
+  }
+
+  /* ── PROGRESS ───────────────────────────────────────── */
+  #progress-wrap { display: none; padding: 0 22px 18px; }
+  #progress-wrap.visible { display: block; }
+
+  .progress-track {
+    height: 3px; background: var(--surface3);
+    border-radius: 2px; overflow: hidden; margin-bottom: 8px;
+  }
+  .progress-fill {
+    height: 100%; background: var(--accent);
+    border-radius: 2px; transition: width 0.25s; width: 0%;
+  }
+  .progress-label {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--text-mid); text-align: center;
+  }
+
+  /* ── OUTPUT ─────────────────────────────────────────── */
+  #output-section { display: none; margin-top: 20px; width: 100%; max-width: 720px; }
+  #output-section.visible { display: block; }
+
+  .output-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    animation: fadeUp 0.35s ease forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .output-preview {
+    padding: 20px; display: flex; justify-content: center;
+    background: repeating-conic-gradient(#14151e 0% 25%, #0f1017 0% 50%) 0 0 / 12px 12px;
+  }
+  #output-gif { max-width: 100%; max-height: 380px; border-radius: 6px; display: block; }
+
+  .stats-strip {
+    padding: 14px 22px; border-top: 1px solid var(--border);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+  }
+  .stat-item { text-align: center; padding: 0 8px; border-right: 1px solid var(--border); }
+  .stat-item:last-child { border-right: none; }
+  .stat-label {
+    font-family: 'DM Mono', monospace; font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-mid); margin-bottom: 4px;
+  }
+  .stat-value {
+    font-family: 'Clash Display', 'Syne', sans-serif;
+    font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.3px;
+  }
+
+  .output-size-badge {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    padding: 4px 10px; border-radius: 40px; margin-left: auto;
+  }
+  .output-size-badge.ok {
+    background: rgba(52,211,153,0.1); color: var(--green);
+    border: 1px solid rgba(52,211,153,0.2);
+  }
+
+  .output-actions {
+    padding: 14px 22px; border-top: 1px solid var(--border);
+    display: flex; gap: 10px;
+  }
+
+  .dl-btn {
+    flex: 1; background: var(--accent); color: #fff;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
+    border: none; border-radius: 10px; padding: 13px;
+    cursor: pointer; text-decoration: none; text-align: center;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: opacity 0.15s;
+  }
+  .dl-btn:hover { opacity: 0.85; }
+
+  .again-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-family: 'Syne', sans-serif;
+    font-weight: 600; font-size: 14px; border-radius: 10px;
+    padding: 13px 18px; cursor: pointer;
+    transition: border-color 0.15s; white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .again-btn:hover { border-color: var(--border2); }
+
+  /* ── STATUS ─────────────────────────────────────────── */
+  /* ── FFMPEG LOADER BAR ──────────────────────────────── */
+  #ffmpeg-status {
+    width: 100%;
+    max-width: 720px;
+    margin-top: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    overflow: hidden;
+    transition: border-color 0.4s ease;
+  }
+  #ffmpeg-status.ready-done { border-color: rgba(52,211,153,0.3); }
+
+  .loader-inner {
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px;
+  }
+
+  .loader-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  #ffmpeg-status.ready-done .loader-icon {
+    background: rgba(52,211,153,0.1);
+    border-color: rgba(52,211,153,0.3);
+  }
+
+  .loader-text-wrap { flex: 1; min-width: 0; }
+
+  .loader-label {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--text-mid); margin-bottom: 7px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: color 0.3s;
+  }
+  #ffmpeg-status.ready-done .loader-label { color: var(--green); }
+
+  .loader-track {
+    height: 4px; background: var(--surface2);
+    border-radius: 2px; overflow: hidden;
+  }
+
+  .loader-fill {
+    height: 100%; border-radius: 2px;
+    background: var(--accent); width: 0%;
+    transition: width 0.35s ease, background 0.3s ease;
+  }
+  #ffmpeg-status.ready-done .loader-fill { background: var(--green); }
+
+  .loader-pct {
+    font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500;
+    color: var(--text-mid); flex-shrink: 0; min-width: 36px; text-align: right;
+    transition: color 0.3s;
+  }
+  #ffmpeg-status.ready-done .loader-pct { color: var(--green); }
+
+  .cache-badge {
+    display: none;
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    color: var(--accent2); background: var(--accent-dim);
+    border: 1px solid var(--accent); border-radius: 4px;
+    padding: 2px 7px; flex-shrink: 0; letter-spacing: 0.04em;
+  }
+  .cache-badge.visible { display: block; }
+
+  @keyframes blink { 0%,100%{opacity:0.2} 50%{opacity:1} }
+
+  .mobile-note {
+    display: none; width: 100%; max-width: 720px; margin-top: 14px;
+    padding: 11px 16px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface);
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--text-mid); line-height: 1.6; text-align: center;
+  }
+  @media (hover: none) and (pointer: coarse) { .mobile-note { display: block; } }
+
+  @media (max-width: 400px) {
+    .stats-strip { grid-template-columns: repeat(2, 1fr); }
+    .stat-item:nth-child(2) { border-right: none; }
+    .stat-item:nth-child(1), .stat-item:nth-child(2) {
+      border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 8px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="eyebrow"><span>//</span> GIF EXPORT TOOL</div>
+  <div class="logo">GIF<em>Drop</em></div>
+  <div class="tagline">Drop an MP4, get a high-quality GIF —<br>auto-optimised to stay under 5 MB.</div>
+</header>
+
+<!-- MAIN CARD -->
+<div class="card" id="drop-card">
+
+  <!-- Section header -->
+  <div class="section-header">
+    <div class="section-num">01</div>
+    <div class="section-title">Single Export</div>
+  </div>
+
+  <!-- Drop zone -->
+  <div id="dropzone" onclick="document.getElementById('file-input').click()">
+    <div class="drop-icon">🎬</div>
+    <div class="drop-label">Drop MP4 here</div>
+    <div class="drop-sub">Auto-optimised to ≤ 5 MB — no manual settings needed</div>
+    <button class="drop-btn" onclick="event.stopPropagation(); document.getElementById('file-input').click()">Choose File</button>
+    <div class="mobile-hint">Tap to pick a video from your library</div>
+    <input type="file" id="file-input" accept="video/mp4,video/quicktime,video/webm,video/*">
+  </div>
+
+  <!-- Workspace -->
+  <div id="workspace">
+
+    <!-- File info -->
+    <div class="file-bar">
+      <div class="file-pill">
+        <div class="file-icon">🎞️</div>
+        <div class="file-name" id="file-name-label">—</div>
+        <div class="file-meta" id="file-meta-label">—</div>
+      </div>
+      <button class="ghost-btn" id="reset-btn">✕ Reset</button>
+    </div>
+
+    <!-- Video -->
+    <div class="video-wrap">
+      <video id="preview-video" controls preload="metadata" playsinline></video>
+    </div>
+
+    <!-- Trim -->
+    <div class="trim-section">
+      <div class="field-label">Trim Clip</div>
+      <div class="trim-track" id="trim-track">
+        <div class="trim-selection" id="trim-selection"></div>
+        <div class="trim-handle start" id="handle-start"></div>
+        <div class="trim-handle end" id="handle-end"></div>
+        <div class="trim-playhead" id="trim-playhead"></div>
+      </div>
+      <div class="trim-times">
+        <span>0:00</span>
+        <span class="hl">
+          <span id="trim-start-label">0:00</span>&nbsp;→&nbsp;<span id="trim-end-label">0:00</span>&nbsp;·&nbsp;<span id="trim-duration-label">0s</span>
+        </span>
+        <span id="total-duration-label">0:00</span>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="settings-section">
+      <div class="field-label">Auto Settings</div>
+      <div class="settings-grid">
+        <div class="setting-card">
+          <div class="setting-title">Frame Rate</div>
+          <div class="setting-value" id="disp-fps">12 <span>fps</span></div>
+          <div class="setting-note" id="note-fps">Balanced</div>
+        </div>
+        <div class="setting-card">
+          <div class="setting-title">Resolution</div>
+          <div class="setting-value" id="disp-res">480 <span>px</span></div>
+          <div class="setting-note" id="note-res">Lanczos</div>
+        </div>
+        <div class="setting-card">
+          <div class="setting-title">Palette</div>
+          <div class="setting-value">256 <span>col</span></div>
+          <div class="setting-note">2-pass</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Size estimate -->
+    <div class="estimate-bar">
+      <div class="estimate-label">Est. Size</div>
+      <div class="size-meter"><div class="size-fill" id="size-fill"></div></div>
+      <div class="estimate-value" id="estimate-value">—</div>
+    </div>
+
+    <!-- Warning -->
+    <div class="warning-box hidden" id="warning-box">
+      <span class="wi">⚠️</span>
+      <span id="warning-text"></span>
+    </div>
+
+    <!-- Buttons — mirrors Clear + Download pattern -->
+    <div class="btn-row">
+      <button class="btn-clear" id="clear-btn">Clear</button>
+      <button class="btn-convert" id="convert-btn" disabled>
+        <span id="convert-icon">⏳</span>
+        <span id="convert-label">Loading FFmpeg…</span>
+      </button>
+    </div>
+
+    <!-- Progress -->
+    <div id="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="progress-label" id="progress-label">Preparing…</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Mobile note -->
+<div class="mobile-note">
+  📱 FFmpeg runs in your browser — nothing is uploaded. Keep screen on during conversion.
+</div>
+
+<!-- Output -->
+<div id="output-section">
+  <div class="output-card">
+    <div class="section-header">
+      <div class="section-num" style="background:rgba(52,211,153,0.1);border-color:var(--green);color:var(--green)">✓</div>
+      <div class="section-title">GIF Ready</div>
+      <div class="output-size-badge ok" id="output-badge">— MB</div>
+    </div>
+    <div class="output-preview">
+      <img id="output-gif" src="" alt="Generated GIF">
+    </div>
+    <div class="stats-strip">
+      <div class="stat-item"><div class="stat-label">File Size</div><div class="stat-value" id="stat-size">—</div></div>
+      <div class="stat-item"><div class="stat-label">Width</div><div class="stat-value" id="stat-res">—</div></div>
+      <div class="stat-item"><div class="stat-label">FPS</div><div class="stat-value" id="stat-fps">—</div></div>
+      <div class="stat-item"><div class="stat-label">Duration</div><div class="stat-value" id="stat-dur">—</div></div>
+    </div>
+    <div class="output-actions">
+      <a class="dl-btn" id="dl-btn" href="#" download="output.gif">↓ Download GIF</a>
+      <button class="again-btn" id="again-btn">Convert Another</button>
+    </div>
+  </div>
+</div>
+
+<div id="ffmpeg-status">
+  <div class="loader-inner">
+    <div class="loader-icon" id="loader-icon">⚙️</div>
+    <div class="loader-text-wrap">
+      <div class="loader-label" id="status-text">Downloading FFmpeg…</div>
+      <div class="loader-track">
+        <div class="loader-fill" id="loader-fill"></div>
+      </div>
+    </div>
+    <div class="loader-pct" id="loader-pct">0%</div>
+    <div class="cache-badge" id="cache-badge">CACHED</div>
+  </div>
+</div>
+
+<script type="module">
+import { FFmpeg } from 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js';
+import { fetchFile, toBlobURL } from 'https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js';
+
+const $ = id => document.getElementById(id);
+
+let ffmpeg = null, ffmpegReady = false;
+let videoFile = null, videoDuration = 0;
+let trimStart = 0, trimEnd = 0;
+let isDragging = null, outputBlob = null;
+let chosenFps = 12, chosenWidth = 480;
+
+const MAX_BYTES = 4.9 * 1024 * 1024;
+const MIN_WIDTH = 320;
+const FPS_STEPS   = [15, 12, 10, 8];
+const WIDTH_STEPS = [640, 560, 480, 420, 360, 320];
+
+const dropzone       = $('dropzone');
+const fileInput      = $('file-input');
+const workspace      = $('workspace');
+const previewVideo   = $('preview-video');
+const fileNameLabel  = $('file-name-label');
+const fileMetaLabel  = $('file-meta-label');
+const resetBtn       = $('reset-btn');
+const clearBtn       = $('clear-btn');
+const trimTrack      = $('trim-track');
+const trimSelection  = $('trim-selection');
+const handleStart    = $('handle-start');
+const handleEnd      = $('handle-end');
+const trimPlayhead   = $('trim-playhead');
+const trimStartLabel = $('trim-start-label');
+const trimEndLabel   = $('trim-end-label');
+const trimDurLabel   = $('trim-duration-label');
+const totalDurLabel  = $('total-duration-label');
+const dispFps        = $('disp-fps');
+const dispRes        = $('disp-res');
+const noteFps        = $('note-fps');
+const noteRes        = $('note-res');
+const sizeFill       = $('size-fill');
+const estimateValue  = $('estimate-value');
+const warningBox     = $('warning-box');
+const warningText    = $('warning-text');
+const convertBtn     = $('convert-btn');
+const convertIcon    = $('convert-icon');
+const convertLabel   = $('convert-label');
+const progressWrap   = $('progress-wrap');
+const progressFill   = $('progress-fill');
+const progressLabel  = $('progress-label');
+const outputSection  = $('output-section');
+const outputGif      = $('output-gif');
+const outputBadge    = $('output-badge');
+const dlBtn          = $('dl-btn');
+const againBtn       = $('again-btn');
+// statusDot removed — using loader bar now
+const statusText     = $('status-text');
+const statSize = $('stat-size'), statRes = $('stat-res');
+const statFps  = $('stat-fps'), statDur  = $('stat-dur');
+
+const fmt = s => {
+  const m = Math.floor(s/60), sec = Math.floor(s%60);
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+};
+const fmtSize = b => b >= 1048576 ? (b/1048576).toFixed(2)+' MB' : (b/1024).toFixed(0)+' KB';
+
+function estimateBytes(w, fps, dur) {
+  return (w * Math.round(w * 0.5625) * fps * dur * 4.0) / 8;
+}
+
+function computeParams(dur) {
+  for (const fps of FPS_STEPS) {
+    for (const width of WIDTH_STEPS) {
+      if (estimateBytes(width, fps, dur) <= MAX_BYTES) return { fps, width, ok: width >= MIN_WIDTH };
+    }
+  }
+  return { fps: 8, width: 320, ok: false };
+}
+
+function updateParams() {
+  const dur = trimEnd - trimStart;
+  if (dur <= 0) return;
+  const { fps, width, ok } = computeParams(dur);
+  chosenFps = fps; chosenWidth = width;
+
+  dispFps.innerHTML = `${fps} <span>fps</span>`;
+  dispRes.innerHTML = `${width} <span>px</span>`;
+  noteFps.textContent = fps >= 15 ? 'Smooth' : fps >= 12 ? 'Balanced' : fps >= 10 ? 'Cinematic' : 'Minimal';
+  noteRes.textContent = width >= 560 ? 'High detail' : width >= 480 ? 'Sharp' : width >= 360 ? 'Compact' : 'Minimum';
+
+  const est = estimateBytes(width, fps, dur);
+  const pct = Math.min((est / MAX_BYTES) * 100, 100);
+  sizeFill.style.width = pct + '%';
+  sizeFill.style.background = pct > 90 ? 'var(--orange)' : pct > 65 ? '#6c63ff' : 'var(--green)';
+  estimateValue.textContent = fmtSize(est);
+  estimateValue.style.color = pct > 90 ? 'var(--orange)' : 'var(--text)';
+
+  if (!ok) {
+    warningBox.classList.remove('hidden');
+    const maxDur = Math.floor((MAX_BYTES * 8) / (320 * 180 * 8 * 4.0));
+    warningText.textContent = `Resolution would drop below 320p. Trim to under ${maxDur}s using the handles above.`;
+  } else {
+    warningBox.classList.add('hidden');
+  }
+}
+
+function updateTrimUI() {
+  const total = videoDuration;
+  const sp = (trimStart / total) * 100;
+  const ep = (trimEnd   / total) * 100;
+  trimSelection.style.left  = sp + '%';
+  trimSelection.style.width = (ep - sp) + '%';
+  handleStart.style.left = sp + '%';
+  handleEnd.style.left   = ep + '%';
+  trimStartLabel.textContent = fmt(trimStart);
+  trimEndLabel.textContent   = fmt(trimEnd);
+  trimDurLabel.textContent   = `${(trimEnd - trimStart).toFixed(1)}s`;
+  totalDurLabel.textContent  = fmt(total);
+  updateParams();
+}
+
+function getTrackPct(e) {
+  const rect = trimTrack.getBoundingClientRect();
+  const x = e.touches ? e.touches[0].clientX : e.clientX;
+  return Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+}
+
+handleStart.addEventListener('pointerdown', e => { isDragging = 'start'; e.preventDefault(); });
+handleEnd.addEventListener('pointerdown',   e => { isDragging = 'end';   e.preventDefault(); });
+
+window.addEventListener('pointermove', e => {
+  if (!isDragging) return;
+  const t = getTrackPct(e) * videoDuration;
+  if (isDragging === 'start') {
+    trimStart = Math.max(0, Math.min(t, trimEnd - 0.5));
+    previewVideo.currentTime = trimStart;
+  } else {
+    trimEnd = Math.min(videoDuration, Math.max(t, trimStart + 0.5));
+    previewVideo.currentTime = trimEnd;
+  }
+  updateTrimUI();
+});
+
+window.addEventListener('pointerup',     () => { isDragging = null; });
+window.addEventListener('pointercancel', () => { isDragging = null; });
+
+previewVideo.addEventListener('timeupdate', () => {
+  if (!videoDuration) return;
+  trimPlayhead.style.left = (previewVideo.currentTime / videoDuration * 100) + '%';
+});
+
+function doReset() {
+  videoFile = null;
+  previewVideo.src = '';
+  workspace.style.display = 'none';
+  dropzone.classList.remove('hidden');
+  outputSection.classList.remove('visible');
+  progressWrap.classList.remove('visible');
+  fileInput.value = '';
+  outputBlob = null;
+  clearBtn.classList.remove('visible');
+}
+
+function handleFile(file) {
+  if (!file) return;
+  videoFile = file;
+  previewVideo.src = URL.createObjectURL(file);
+  previewVideo.load();
+  fileNameLabel.textContent = file.name;
+  fileMetaLabel.textContent = fmtSize(file.size);
+  previewVideo.addEventListener('loadedmetadata', () => {
+    videoDuration = previewVideo.duration;
+    trimStart = 0; trimEnd = videoDuration;
+    updateTrimUI();
+    dropzone.classList.add('hidden');
+    workspace.style.display = 'block';
+    clearBtn.classList.add('visible');
+    if (ffmpegReady) enableConvert();
+  }, { once: true });
+}
+
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
+resetBtn.addEventListener('click', doReset);
+clearBtn.addEventListener('click', doReset);
+
+// ── Service Worker registration ──────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('#', { scope: '/' }).catch(() => {});
+  // Inline SW via blob for single-file GitHub Pages deployment
+  const swCode = `
+    const CACHE = 'gifdrop-ffmpeg-v1';
+    const URLS = [
+      'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
+      'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm',
+    ];
+    self.addEventListener('install', e => {
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll(URLS).catch(()=>{})));
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
+    self.addEventListener('fetch', e => {
+      if (URLS.some(u => e.request.url.startsWith(u.split('?')[0]))) {
+        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+          return res;
+        })));
+      }
+    });
+  `;
+  try {
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl, { scope: '/' }).catch(() => {});
+  } catch(e) {}
+}
+
+async function loadFFmpeg() {
+  ffmpeg = new FFmpeg();
+
+  ffmpeg.on('log', ({ message }) => {
+    const m = message.match(/time=(\d+):(\d+):([\d.]+)/);
+    if (m) {
+      const elapsed = +m[1]*3600 + +m[2]*60 + parseFloat(m[3]);
+      const pct = 50 + Math.min(44, (elapsed / (trimEnd - trimStart)) * 44);
+      progressFill.style.width = pct + '%';
+    }
+  });
+
+  const loaderFill = $('loader-fill');
+  const loaderPct  = $('loader-pct');
+  const loaderIcon = $('loader-icon');
+  const cacheBadge = $('cache-badge');
+  const statusEl   = $('ffmpeg-status');
+
+  // Track download progress via fetch interception
+  let fromCache = false;
+
+  async function fetchWithProgress(url, mimeType) {
+    // Try cache first (service worker or cache API)
+    const cached = await caches.open('gifdrop-ffmpeg-v1').then(c => c.match(url)).catch(() => null);
+    if (cached) {
+      fromCache = true;
+      const buf = await cached.arrayBuffer();
+      return new Blob([buf], { type: mimeType });
+    }
+    // Live fetch with progress
+    const res = await fetch(url);
+    const total = parseInt(res.headers.get('content-length') || '0');
+    const reader = res.body.getReader();
+    const chunks = [];
+    let received = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      received += value.length;
+      if (total > 0) {
+        // WASM is the big file (~28MB), report its progress as overall progress
+        const pct = Math.round((received / total) * 90);
+        loaderFill.style.width = pct + '%';
+        loaderPct.textContent  = pct + '%';
+        statusText.textContent = `Downloading FFmpeg… ${(received/1048576).toFixed(1)} / ${(total/1048576).toFixed(1)} MB`;
+      }
+    }
+    const blob = new Blob(chunks, { type: mimeType });
+    // Store in cache for next visit
+    const resClone = new Response(blob.slice());
+    await caches.open('gifdrop-ffmpeg-v1').then(c => c.put(url, resClone)).catch(() => {});
+    return blob;
+  }
+
+  try {
+    const base = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+
+    statusText.textContent = 'Checking cache…';
+    loaderFill.style.width = '5%';
+    loaderPct.textContent  = '5%';
+
+    // Fetch core JS (small, ~200KB)
+    const coreBlob = await fetchWithProgress(`${base}/ffmpeg-core.js`, 'text/javascript');
+    loaderFill.style.width = '15%';
+
+    // Fetch WASM (large, ~28MB) — this is where the progress bar earns its keep
+    const wasmBlob = await fetchWithProgress(`${base}/ffmpeg-core.wasm`, 'application/wasm');
+
+    if (fromCache) {
+      cacheBadge.classList.add('visible');
+      statusText.textContent = 'Loaded from cache';
+      loaderFill.style.width = '100%';
+      loaderPct.textContent  = '100%';
+    } else {
+      loaderFill.style.width = '95%';
+      loaderPct.textContent  = '95%';
+      statusText.textContent = 'Initialising…';
+    }
+
+    await ffmpeg.load({
+      coreURL: URL.createObjectURL(coreBlob),
+      wasmURL: URL.createObjectURL(wasmBlob),
+    });
+
+    ffmpegReady = true;
+    loaderFill.style.width = '100%';
+    loaderPct.textContent  = '100%';
+    loaderIcon.textContent = '✓';
+    statusEl.classList.add('ready-done');
+    statusText.textContent = fromCache
+      ? 'Ready — loaded from cache'
+      : 'Ready — FFmpeg loaded, zero uploads';
+
+    if (videoFile) enableConvert();
+  } catch (err) {
+    loaderIcon.textContent = '✕';
+    statusText.textContent = 'Failed to load. Try refreshing.';
+    loaderFill.style.background = 'var(--orange)';
+    console.error(err);
+  }
+}
+
+function enableConvert() {
+  convertBtn.disabled = false;
+  convertIcon.textContent  = '↓';
+  convertLabel.textContent = 'Convert to GIF';
+}
+
+convertBtn.addEventListener('click', doConvert);
+
+async function doConvert() {
+  if (!ffmpeg || !videoFile) return;
+  convertBtn.disabled = true;
+  convertIcon.textContent  = '⚙️';
+  convertLabel.textContent = 'Converting…';
+  progressWrap.classList.add('visible');
+  progressFill.style.width = '5%';
+  progressLabel.textContent = 'Writing input…';
+
+  const duration = trimEnd - trimStart;
+  const width = chosenWidth, fps = chosenFps;
+
+  try {
+    await ffmpeg.writeFile('input.mp4', await fetchFile(videoFile));
+
+    progressLabel.textContent = 'Pass 1 — Building palette…';
+    progressFill.style.width  = '15%';
+    const trimArgs = ['-ss', trimStart.toFixed(3), '-t', duration.toFixed(3)];
+    await ffmpeg.exec(['-i','input.mp4',...trimArgs,'-vf',`fps=${fps},scale=${width}:-2:flags=lanczos,palettegen=stats_mode=diff`,'-y','palette.png']);
+
+    progressLabel.textContent = 'Pass 2 — Rendering GIF…';
+    progressFill.style.width  = '50%';
+    await ffmpeg.exec(['-i','input.mp4',...trimArgs,'-i','palette.png','-lavfi',`fps=${fps},scale=${width}:-2:flags=lanczos [x]; [x][1:v] paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle`,'-y','output.gif']);
+
+    progressFill.style.width  = '96%';
+    progressLabel.textContent = 'Finalising…';
+
+    const data = await ffmpeg.readFile('output.gif');
+    outputBlob = new Blob([data.buffer], { type: 'image/gif' });
+    const gifUrl = URL.createObjectURL(outputBlob);
+
+    outputGif.src  = gifUrl;
+    dlBtn.href     = gifUrl;
+    dlBtn.download = (videoFile.name.replace(/\.[^.]+$/, '') || 'output') + '.gif';
+
+    const sz = fmtSize(outputBlob.size);
+    outputBadge.textContent = sz;
+    statSize.textContent = sz; statRes.textContent = `${width}px`;
+    statFps.textContent  = `${fps}fps`; statDur.textContent = `${duration.toFixed(1)}s`;
+
+    progressFill.style.width  = '100%';
+    progressLabel.textContent = 'Done!';
+    outputSection.classList.add('visible');
+    setTimeout(() => outputSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+
+    await ffmpeg.deleteFile('input.mp4').catch(()=>{});
+    await ffmpeg.deleteFile('palette.png').catch(()=>{});
+    await ffmpeg.deleteFile('output.gif').catch(()=>{});
+
+    convertBtn.disabled = false;
+    convertIcon.textContent  = '↓';
+    convertLabel.textContent = 'Convert Again';
+
+  } catch (err) {
+    console.error(err);
+    progressLabel.textContent = '❌ ' + (err.message || 'Conversion failed');
+    convertBtn.disabled = false;
+    convertIcon.textContent  = '⚠️';
+    convertLabel.textContent = 'Try Again';
+  }
+}
+
+againBtn.addEventListener('click', () => {
+  outputSection.classList.remove('visible');
+  progressWrap.classList.remove('visible');
+  progressFill.style.width = '0%';
+  outputBlob = null;
+  convertBtn.disabled = false;
+  convertIcon.textContent  = '↓';
+  convertLabel.textContent = 'Convert to GIF';
+});
+
+loadFFmpeg();
+</script>
+</body>
+</html>
